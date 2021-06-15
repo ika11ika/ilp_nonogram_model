@@ -9,7 +9,6 @@ import time
 from os import listdir
 
 def count_k(black_blocks_list):
-	#in fact return k_row or k_col
 	list_to_return = list()
 	for element in black_blocks_list:
 		list_to_return.append(len(element))
@@ -52,7 +51,6 @@ def count_l(black_blocks_list, row_col_indicator):
 	return l_array
 
 def reverse_everything(array):
-	#reverse whole lost & every list element in it
 	array = list(reversed(array))
 	new_array = list()
 	for element in array:
@@ -140,9 +138,9 @@ def add_model_info(model, M, N, tableROW, tableCOL):
 	l_col =  count_l(reverse_everything(tableCOL), M)
 	
 	#переменные 
-	z = {} #same z as in optima, is pixel black or white
-	y = {} #same y as in optima, is pixel j the first block t pixel
-	x = {} #same x as in optima, is pixel i the first block t pixel
+	z = {} #тоже z, что и в описании модели, отвечает за цвет пикселя
+	y = {} #тоже y, что и в описании модели, является ли пиксель j первым для блоков строки
+	x = {} #тоже x, что и в описании модели, является ли пиксель i первым для блоков столбца
 	
 	z = add_z(z, M, N, model)
 	y = add_y(y, model, k_row, e_row, l_row, M)	
@@ -172,7 +170,6 @@ def prepare_test_example():
 		result_image = image.convert('L').point(fn, mode='1')	
 		a = (list(result_image.getdata()))
 		result_image.save(os.path.join(result_path,file),format='PNG')
-		#matrix = np.array(result_image.getdata()) для печати
 		
 def get_table_rows(image_data, width, height):
 	# i и j поменяны местами, так как доступ к значениям пикселей производится по координатам xy
@@ -217,6 +214,7 @@ def base_solving():
 		
 		tableROW = get_table_rows(pix, width, height)
 		tableCOL = get_table_columns(pix, width, height)
+
 		z = {}
 		
 		model = pyscipopt.Model("Nonogram solver model")
@@ -234,17 +232,22 @@ def base_solving():
 		model2.setLongintParam("constraints/countsols/sollimit", 2)
 		model2.setParam('limits/time', 600)
 		model2.count()
+		
 		if (model2.getNCountedSols() > 1):
 			continue
+		
 		current_test_time = end_test_timer - start_test_timer
 		tests_timers.append(current_test_time.total_seconds())
 		nonogram = []
+		
 		if model.getStatus() == "optimal":
+			model.writeProblem()
 			for i in range(height):
 				nonogram.append([])
 				for j in range(width):
 					nonogram[i].append(int(model.getVal(z[i,j])))
 		board(width, height, nonogram, file)
+	
 	return tests_timers
 
 def main():
@@ -254,71 +257,6 @@ def main():
 	print("Min: " + str(min(tests_timers)))
 	print("Average: " + str(round(mean(tests_timers),3)))
 	print("Tests amount: " + str(len(tests_timers)))
-	#z = {}
-	#model = pyscipopt.Model("Nonogram solver model")
-	#model,z = add_model_info(model)	
-	#model.optimize()
-	#model.writeProblem("try3")
-	#nonogram = []
-	'''
-	if model.getStatus() == "optimal":
-		for i in range(M):
-			nonogram.append([])
-			for j in range(N):
-				nonogram[i].append(int(model.getVal(z[i,j])))
-	
-	board(N,M, nonogram)
-	'''	
+
 main()
 
-"""
-def prepare_test_example():
-
-	#Перевод в градации серого для дальнейшего преобразования в ч-б
-
-	path = './image_base/'
-	result_path = './prepared_base/'
-	num_files = len([f for f in os.listdir(path)
-                if os.path.isfile(os.path.join(path, f))]) # количество тест-файлов, еще не решила зачем, на будущее 
-	for i in listdir(path):
-		img = Image.open(os.path.join(path,i))
-		arr = np.asarray(img, dtype='uint8')
-		x, y, _ = arr.shape
-		k = np.array([[[0.2989, 0.587, 0.114]]])
-		arr2 = np.round(np.sum(arr*k, axis=2)).astype(np.uint8).reshape((x, y))
-		img2 = Image.fromarray(arr2)
-		img2.save(os.path.join(result_path,i))
-"""
-		
-		
-		
-"""
-def grey_to_black_white():
-	path = './prepared_base/'
-	result_path = './test_results/'
-	for file in listdir(path):
-		image = Image.open(os.path.join(path,file))
-		pix = image.load()
-		
-		width = image.size[0] #Определяем ширину.
-		height = image.size[1] #Определяем высоту.
-		
-		new_image = Image.new(mode = "L", size = (width,height))
-		draw = ImageDraw.Draw(new_image)
-
-		factor = 100 #параметр по которому считывается, в какую сторону менять пиксель
-		
-		for i in range(width):
-			for j in range(height):
-				a = pix[i, j][0]
-				b = pix[i, j][1]
-				c = pix[i, j][2]
-				S = a + b + c
-				if (S > (((255 + factor) // 2) * 3)):
-					a, b, c = 255, 255, 255
-				else:
-					a, b, c = 0, 0, 0
-				draw.point((i, j), (a, b, c))
-		new_image.save(os.path.join(result_path,file))
-	return 0
-"""
